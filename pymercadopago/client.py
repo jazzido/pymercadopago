@@ -64,7 +64,7 @@ class Client(object):
         raise NotImplementedException
 
     def update_preference(self, preference_id, data):
-        if not self.isAuthenticated()
+        if not self.isAuthenticated():
             raise NotAuthenticatedException("Not yet authenticated or authentication expired")
 
         raise NotImplementedException
