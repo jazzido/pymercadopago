@@ -12,6 +12,7 @@ class NotAuthenticatedException(Exception):
 class NotImplementedException(Exception):
     pass
 
+
 URL_AUTH = 'https://api.mercadolibre.com/oauth/token'
 URL_PAYMENT_INFO = 'https://api.mercadolibre.com/collections/notifications/%s'
 
@@ -87,4 +88,8 @@ class Client(object):
 
         if r.status_code == 200:
             return r.json
-        
+        elif r.status_code == 404:
+            return None
+        else:
+            raise RuntimeError("%s: %r" % (r.status_code, r.text))
+
