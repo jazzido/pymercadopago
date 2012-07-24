@@ -6,8 +6,6 @@ class UnauthorizedException(Exception):
         Exception.__init__(self, message)
         self.error = error
 
-class 
-
 class NotAuthenticatedException(Exception):
     pass
 
