@@ -11,7 +11,7 @@ setup(name='pymercadopago',
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          'requests >=0.13.2'
+            'simplejson'
           ],
       author='Manuel Aristarán',
       author_email='jazzido@jazzido.com',

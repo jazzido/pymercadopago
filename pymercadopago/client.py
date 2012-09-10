@@ -1,5 +1,5 @@
-import requests
 import time
+import urllib, urllib2, simplejson
 
 class UnauthorizedException(Exception):
     def __init__(self, message, error):
@@ -25,34 +25,40 @@ class Client(object):
         self._authenticatedOn = None
 
     def authenticate(self):
-        r = requests.post(
-            URL_AUTH,
-            params={
-                'grant_type': 'client_credentials',
-                'client_id': self.client_id,
-                'client_secret': self.client_secret
-                },
-            headers={
-                'Accept': 'application/json',
-                'content-type': 'application/x-www-form-urlencoded'
-                })
+        data = urllib.urlencode({
+                                    'grant_type': 'client_credentials',
+                                    'client_id': self.client_id,
+                                    'client_secret': self.client_secret
+                                })
 
-        if r.status_code == 200:
-            self.access_token  = r.json['access_token']
-            self.token_type    = r.json['token_type']
-            self.refresh_token = r.json['refresh_token']
-            self.scope         = r.json['scope']
-            self.expires_in    = r.json['expires_in']
+        req = urllib2.Request(URL_AUTH, data, {
+                                    'Accept': 'application/json',
+                                    'content-type': 'application/x-www-form-urlencoded'
+                                })
 
-            self._authenticatedOn = time.time()
+        try:
+            resp = urllib2.urlopen(req)
+        except HTTPError:
+            # XXX TODO make this better
+            raise
+
+        json = simplejson.loads(resp.read())
+
+        self.access_token  = json['access_token']
+        self.token_type    = json['token_type']
+        self.refresh_token = json['refresh_token']
+        self.scope         = json['scope']
+        self.expires_in    = json['expires_in']
+
+        self._authenticatedOn = time.time()
             
-            return self.access_token
+        return self.access_token
             
-        elif r.status_code == 400:
-            raise UnauthorizedException(r.json['message'], r.json['error'])
+        # elif r.status_code == 400:
+        #     raise UnauthorizedException(r.json['message'], r.json['error'])
 
-        # unknown error
-        raise Exception("Server responded with: %s: %s" % (r.status_code, r.teext,))
+        # # unknown error
+        # raise Exception("Server responded with: %s: %s" % (r.status_code, r.teext,))
 
     def isAuthenticated(self):
         return self._authenticatedOn is not None \
@@ -69,7 +75,6 @@ class Client(object):
             raise NotAuthenticatedException("Not yet authenticated or authentication expired")
 
         raise NotImplementedException
-       
                           
 
     def get_payment(self, payment_id):
@@ -77,19 +82,18 @@ class Client(object):
             raise NotAuthenticatedException("Not yet authenticated or authentication expired")
 
         # https://api.mercadolibre.com/collections/notifications/transaction-id?access_token=tu-access-token
-        r = requests.get(
-            URL_PAYMENT_INFO % payment_id,
-            params={
-                'access_token': self.access_token
-                },
-            headers={
-                'Accept': 'application/json',
-                })
 
-        if r.status_code == 200:
-            return r.json
-        elif r.status_code == 404:
-            return None
-        else:
-            raise RuntimeError("%s: %r" % (r.status_code, r.text))
+        print (URL_PAYMENT_INFO % payment_id) + '?' + urllib.urlencode({'access_token': self.access_token})
+        req = urllib2.Request((URL_PAYMENT_INFO % payment_id) \
+                              + '?' + urllib.urlencode({'access_token': self.access_token}),
+                              None,
+                              {'Accept': 'application/json'})
+        try:
+            resp = urllib2.urlopen(req)
+        except urllib2.HTTPError, e:
+            if e.code == 404:
+                return None
+            raise
+
+        return simplejson.loads(resp.read())
 
